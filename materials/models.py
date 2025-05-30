@@ -34,17 +34,14 @@ class Lesson(models.Model):
     )
     course = models.ForeignKey(
         "Course",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         verbose_name="Курс",
-        blank=True,
-        null=True,
         related_name="lessons",
     )
 
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
-        ordering = ["course", "name"]
 
     def __str__(self):
         return self.name
