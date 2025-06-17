@@ -17,12 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('materials.urls', namespace='materials')),
     path('user/', include('users.urls', namespace='user')),
+
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('swagger/lessons/', SpectacularSwaggerView.as_view(url_name='schema'), name='lessons'),
+    path('redoc/lessons/', SpectacularRedocView.as_view(url_name='schema'), name='lessons'),
 ]
 
 
