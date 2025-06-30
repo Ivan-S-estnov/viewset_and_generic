@@ -1,14 +1,27 @@
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import (CreateAPIView, DestroyAPIView,
-                                     ListAPIView, RetrieveAPIView,
-                                     UpdateAPIView)
+from rest_framework.generics import (
+    CreateAPIView,
+    DestroyAPIView,
+    ListAPIView,
+    RetrieveAPIView,
+    UpdateAPIView,
+)
+from materials.tasks import send_mail_update_course
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 from materials.paginators import CustomPagination
-
 from rest_framework.viewsets import ModelViewSet
 from users.permissions import IsModerator, IsOwner
-from materials.models import Course, Lesson
-from materials.serializers import CourseSerializer, LessonSerializer, SerializerMethodField
+from materials.models import Course, Lesson, Subscription
+from materials.serializers import (
+    CourseSerializer,
+    LessonSerializer,
+    SerializerMethodField,
+    SubscriptionSerializer,
+)
+from rest_framework.response import Response
+from rest_framework import status
 
 
 class CourseViewSet(ModelViewSet):
@@ -113,4 +126,19 @@ class LessonDestroyApiView(DestroyAPIView):
     permission_classes = [IsAuthenticated, IsOwner | ~IsModerator]
 
 
+class SubscriptionAPIView(APIView):
+    serializer_class = SubscriptionSerializer
 
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get("course")
+        course = get_object_or_404(Course, pk=course_id)
+        subs_item = Subscription.objects.all().filter(user=user).filter(course=course)
+        send_mail_update_course.delay(course.id)
+        if subs_item.exists():
+            subs_item.delete()
+            message = "Подписка отключена"
+        else:
+            Subscription.objects.create(user=user, course=course)
+            message = "Подписка включена"
+        return Response({"message": message}, status=status.HTTP_201_CREATED)
